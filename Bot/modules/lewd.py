@@ -1,18 +1,74 @@
-import requests
-import nekos
-from PIL import Image
 import os
-
-from telegram import Message, Chat, Update, Bot, MessageEntity
+import html
+import nekos
+import requests
+from PIL import Image
 from telegram import ParseMode
-from telegram.ext import CommandHandler, run_async
+from Bot import dispatcher, updater, OWNER_ID
+import Bot.modules.sql.nsfw_sql as sql
+from telegram import Message, Chat, Update, Bot, MessageEntity
+from telegram.error import BadRequest, RetryAfter, Unauthorized
+from telegram.ext import CommandHandler, run_async, CallbackContext,Filters
+from Bot.modules.helpers.chat_status import user_admin
+from telegram.utils.helpers import mention_html, mention_markdown, escape_markdown
 
-from Bot import dispatcher, updater
+@run_async
+@user_admin
+def add_nsfw(update: Update, context: CallbackContext):
+    chat = update.effective_chat
+    msg = update.effective_message
+    user = update.effective_user #Remodified by @EverythingSuckz
+    is_nsfw = sql.is_nsfw(chat.id)
+    if not is_nsfw:
+        sql.set_nsfw(chat.id)
+        msg.reply_text("Activated NSFW Mode!")
+        message = (
+            f"<b>{html.escape(chat.title)}:</b>\n"
+            f"ACTIVATED_NSFW\n"
+            f"<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))}\n"
+        )
+        return message
+    else:
+        msg.reply_text("NSFW Mode is already Activated for this chat!")
+        return ""
 
 
-def is_user_in_chat(chat: Chat, user_id: int) -> bool:
-    member = chat.get_member(user_id)
-    return member.status not in ("left", "kicked")
+@run_async
+@user_admin
+def rem_nsfw(update: Update, context: CallbackContext):
+    msg = update.effective_message
+    chat = update.effective_chat
+    user = update.effective_user
+    is_nsfw = sql.is_nsfw(chat.id)
+    if not is_nsfw:
+        msg.reply_text("NSFW Mode is already Deactivated")
+        return ""
+    else:
+        sql.rem_nsfw(chat.id)
+        msg.reply_text("Rolled Back to SFW Mode!")
+        message = (
+            f"<b>{html.escape(chat.title)}:</b>\n"
+            f"DEACTIVATED_NSFW\n"
+            f"<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))}\n"
+        )
+        return message
+
+@run_async
+def list_nsfw_chats(update: Update, context: CallbackContext):
+    chats = sql.get_all_nsfw_chats()
+    text = "<b>NSFW Activated Chats</b>\n"
+    for chat in chats:
+        try:
+            x = context.bot.get_chat(int(*chat))
+            name = x.title if x.title else x.first_name
+            text += f"• <code>{name}</code>\n"
+        except BadRequest:
+            sql.rem_nsfw(*chat)
+        except Unauthorized:
+            sql.rem_nsfw(*chat)
+        except RetryAfter as e:
+            sleep(e.retry_after)
+    update.effective_message.reply_text(text, parse_mode="HTML")
 
 
 @run_async
@@ -24,41 +80,66 @@ def neko(update, context):
 
 @run_async
 def feet(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "feet"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def yuri(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "yuri"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def trap(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "trap"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def futanari(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "futanari"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def hololewd(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "hololewd"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def lewdkemo(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "lewdkemo"
     msg.reply_photo(nekos.img(target))
@@ -66,6 +147,11 @@ def lewdkemo(update, context):
 
 @run_async
 def sologif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "solog"
     msg.reply_video(nekos.img(target))
@@ -73,31 +159,47 @@ def sologif(update, context):
 
 @run_async
 def feetgif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "feetg"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def cumgif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "cum"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def erokemo(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "erokemo"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def lesbian(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "les"
     msg.reply_video(nekos.img(target))
-
 
 @run_async
 def wallpaper(update, context):
@@ -105,16 +207,24 @@ def wallpaper(update, context):
     target = "wallpaper"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def lewdk(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "lewdk"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def ngif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "ngif"
     msg.reply_video(nekos.img(target))
@@ -122,13 +232,17 @@ def ngif(update, context):
 
 @run_async
 def tickle(update, context):
-    msg = update.effective_message
-    target = "tickle"
-    msg.reply_video(nekos.img(target))
-
+     msg = update.effective_message
+     target = "tickle"
+     msg.reply_video(nekos.img(target))
 
 @run_async
 def lewd(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "lewd"
     msg.reply_photo(nekos.img(target))
@@ -143,62 +257,99 @@ def feed(update, context):
 
 @run_async
 def eroyuri(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "eroyuri"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def eron(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "eron"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def cum(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "cum_jpg"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def bjgif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "bj"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def bj(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "blowjob"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def nekonsfw(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "nsfw_neko_gif"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def solo(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "solo"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def kemonomimi(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "kemonomimi"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def avatarlewd(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "nsfw_avatar"
     with open("temp.png", "wb") as f:
@@ -208,9 +359,13 @@ def avatarlewd(update, context):
     msg.reply_document(open("temp.webp", "rb"))
     os.remove("temp.webp")
 
-
 @run_async
 def gasm(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "gasm"
     with open("temp.png", "wb") as f:
@@ -230,17 +385,25 @@ def poke(update, context):
 
 @run_async
 def anal(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "anal"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def hentai(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "hentai"
     msg.reply_photo(nekos.img(target))
-
 
 @run_async
 def avatar(update, context):
@@ -253,13 +416,16 @@ def avatar(update, context):
     msg.reply_document(open("temp.webp", "rb"))
     os.remove("temp.webp")
 
-
 @run_async
 def erofeet(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "erofeet"
     msg.reply_photo(nekos.img(target))
-
 
 @run_async
 def holo(update, context):
@@ -267,60 +433,93 @@ def holo(update, context):
     target = "holo"
     msg.reply_photo(nekos.img(target))
 
-
-# def keta(update, context):
-#     msg = update.effective_message
-#     target = 'keta'
-#     if not target:
-#         msg.reply_text("No URL was received from the API!")
-#         return
-#     msg.reply_photo(nekos.img(target))
-
+@run_async
+def keta(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
+    msg = update.effective_message
+    target = 'keta'
+    if not target:
+        msg.reply_text("No URL was received from the API!")
+        return
+    msg.reply_photo(nekos.img(target))
 
 @run_async
 def pussygif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "pussy"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def tits(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "tits"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def holoero(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "holoero"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def pussy(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "pussy_jpg"
     msg.reply_photo(nekos.img(target))
 
-
 @run_async
 def hentaigif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "random_hentai_gif"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def classic(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "classic"
     msg.reply_video(nekos.img(target))
 
-
 @run_async
 def kuni(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "kuni"
     msg.reply_video(nekos.img(target))
@@ -347,13 +546,18 @@ def kiss(update, context):
 
 @run_async
 def femdom(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "femdom"
     msg.reply_photo(nekos.img(target))
 
 
 @run_async
-def cuddle(update, context):
+def hug(update, context):
     msg = update.effective_message
     target = "cuddle"
     msg.reply_video(nekos.img(target))
@@ -361,6 +565,11 @@ def cuddle(update, context):
 
 @run_async
 def erok(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "erok"
     msg.reply_photo(nekos.img(target))
@@ -368,6 +577,11 @@ def erok(update, context):
 
 @run_async
 def foxgirl(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "fox_girl"
     msg.reply_photo(nekos.img(target))
@@ -375,6 +589,11 @@ def foxgirl(update, context):
 
 @run_async
 def titsgif(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "boobs"
     msg.reply_video(nekos.img(target))
@@ -382,6 +601,11 @@ def titsgif(update, context):
 
 @run_async
 def ero(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     target = "ero"
     msg.reply_photo(nekos.img(target))
@@ -403,6 +627,11 @@ def baka(update, context):
 
 @run_async
 def dva(update, context):
+    chat_id = update.effective_chat.id
+    if not update.effective_message.chat.type == "private":
+        is_nsfw = sql.is_nsfw(chat_id)
+        if not is_nsfw:
+            return
     msg = update.effective_message
     nsfw = requests.get("https://api.computerfreaker.cf/v1/dva").json()
     url = nsfw.get("url")
@@ -412,62 +641,9 @@ def dva(update, context):
         return
     msg.reply_photo(url)
 
-__mod_name__ = "Lewd"
-
-__help__ = """
- - /neko: Sends Random SFW Neko source Images.
- - /feet: Sends Random Anime Feet Images.
- - /yuri: Sends Random Yuri source Images.
- - /trap: Sends Random Trap source Images.
- - /futanari: Sends Random Futanari source Images.
- - /hololewd: Sends Random Holo Lewds.
- - /lewdkemo: Sends Random Kemo Lewds.
- - /sologif: Sends Random Solo GIFs.
- - /cumgif: Sends Random Cum GIFs.
- - /erokemo: Sends Random Ero-Kemo Images.
- - /lesbian: Sends Random Les Source Images.
- - /wallpaper: Sends Random Wallpapers.
- - /lewdk: Sends Random Kitsune Lewds.
- - /ngif: Sends Random Neko GIFs.
- - /tickle: Sends Random Tickle GIFs.
- - /lewd: Sends Random Lewds.
- - /feed: Sends Random Feeding GIFs.
- - /eroyuri: Sends Random Ero-Yuri source Images.
- - /eron: Sends Random Ero-Neko source Images.
- - /cum: Sends Random Cum Images.
- - /bjgif: Sends Random Blow Job GIFs.
- - /bj: Sends Random Blow Job source Images.
- - /nekonsfw: Sends Random NSFW Neko source Images.
- - /solo: Sends Random NSFW Neko GIFs.
- - /kemonomimi: Sends Random KemonoMimi source Images.
- - /avatarlewd: Sends Random Avater Lewd Stickers.
- - /gasm: Sends Random Orgasm Stickers.
- - /poke: Sends Random Poke GIFs.
- - /anal: Sends Random Anal GIFs.
- - /hentai: Sends Random Hentai source Images.
- - /avatar: Sends Random Avatar Stickers.
- - /erofeet: Sends Random Ero-Feet source Images.
- - /holo: Sends Random Holo source Images.
- - /tits: Sends Random Tits source Images.
- - /pussygif: Sends Random Pussy GIFs.
- - /holoero: Sends Random Ero-Holo source Images.
- - /pussy: Sends Random Pussy source Images.
- - /hentaigif: Sends Random Hentai GIFs.
- - /classic: Sends Random Classic Hentai GIFs.
- - /kuni: Sends Random Pussy Lick GIFs.
- - /waifu: Sends Random Waifu Stickers.
- - /kiss: Sends Random Kissing GIFs.
- - /femdom: Sends Random Femdom source Images.
- - /cuddle: Sends Random Cuddle GIFs.
- - /erok: Sends Random Ero-Kitsune source Images.
- - /foxgirl: Sends Random FoxGirl source Images.
- - /titsgif: Sends Random Tits GIFs.
- - /ero: Sends Random Ero source Images.
- - /smug: Sends Random Smug GIFs.
- - /baka: Sends Random Baka Shout GIFs.
- - /dva: Sends Random D.VA source Images.
-"""
-
+ADD_NSFW_HANDLER = CommandHandler("addnsfw", add_nsfw)
+REMOVE_NSFW_HANDLER = CommandHandler("rmnsfw", rem_nsfw)
+LIST_NSFW_CHATS_HANDLER = CommandHandler("nsfwchats", list_nsfw_chats, pass_args=True,filters=Filters.user(OWNER_ID))
 LEWDKEMO_HANDLER = CommandHandler("lewdkemo", lewdkemo)
 NEKO_HANDLER = CommandHandler("neko", neko)
 FEET_HANDLER = CommandHandler("feet", feet)
@@ -512,7 +688,7 @@ WAIFU_HANDLER = CommandHandler("waifu", waifu)
 LEWD_HANDLER = CommandHandler("lewd", lewd)
 KISS_HANDLER = CommandHandler("kiss", kiss)
 FEMDOM_HANDLER = CommandHandler("femdom", femdom)
-CUDDLE_HANDLER = CommandHandler("cuddle", cuddle)
+CUDDLE_HANDLER = CommandHandler("hug", hug)
 EROK_HANDLER = CommandHandler("erok", erok)
 FOXGIRL_HANDLER = CommandHandler("foxgirl", foxgirl)
 TITSGIF_HANDLER = CommandHandler("titsgif", titsgif)
@@ -521,6 +697,10 @@ SMUG_HANDLER = CommandHandler("smug", smug)
 BAKA_HANDLER = CommandHandler("baka", baka)
 DVA_HANDLER = CommandHandler("dva", dva)
 
+
+dispatcher.add_handler(ADD_NSFW_HANDLER)
+dispatcher.add_handler(REMOVE_NSFW_HANDLER)
+dispatcher.add_handler(LIST_NSFW_CHATS_HANDLER)
 dispatcher.add_handler(LEWDKEMO_HANDLER)
 dispatcher.add_handler(NEKO_HANDLER)
 dispatcher.add_handler(FEET_HANDLER)
@@ -575,6 +755,9 @@ dispatcher.add_handler(BAKA_HANDLER)
 dispatcher.add_handler(DVA_HANDLER)
 
 __handlers__ = [
+    ADD_NSFW_HANDLER,
+    REMOVE_NSFW_HANDLER,
+    LIST_NSFW_CHATS_HANDLER,
     NEKO_HANDLER,
     FEET_HANDLER,
     YURI_HANDLER,
@@ -628,3 +811,67 @@ __handlers__ = [
     BAKA_HANDLER,
     DVA_HANDLER,
 ]
+
+__help__ = """
+    
+Usage:
+    
+/addnsfw : Enable NSFW mode
+/rmnsfw : Disable NSFW mode
+ 
+Commands :   
+ - /neko: Sends Random SFW Neko source Images.
+ - /feet: Sends Random Anime Feet Images.
+ - /yuri: Sends Random Yuri source Images.
+ - /trap: Sends Random Trap source Images.
+ - /futanari: Sends Random Futanari source Images.
+ - /hololewd: Sends Random Holo Lewds.
+ - /lewdkemo: Sends Random Kemo Lewds.
+ - /sologif: Sends Random Solo GIFs.
+ - /cumgif: Sends Random Cum GIFs.
+ - /erokemo: Sends Random Ero-Kemo Images.
+ - /lesbian: Sends Random Les Source Images.
+ - /lewdk: Sends Random Kitsune Lewds.
+ - /ngif: Sends Random Neko GIFs.
+ - /tickle: Sends Random Tickle GIFs.
+ - /lewd: Sends Random Lewds.
+ - /feed: Sends Random Feeding GIFs.
+ - /eroyuri: Sends Random Ero-Yuri source Images.
+ - /eron: Sends Random Ero-Neko source Images.
+ - /cum: Sends Random Cum Images.
+ - /bjgif: Sends Random Blow Job GIFs.
+ - /bj: Sends Random Blow Job source Images.
+ - /nekonsfw: Sends Random NSFW Neko source Images.
+ - /solo: Sends Random NSFW Neko GIFs.
+ - /kemonomimi: Sends Random KemonoMimi source Images.
+ - /avatarlewd: Sends Random Avater Lewd Stickers.
+ - /gasm: Sends Random Orgasm Stickers.
+ - /poke: Sends Random Poke GIFs.
+ - /anal: Sends Random Anal GIFs.
+ - /hentai: Sends Random Hentai source Images.
+ - /avatar: Sends Random Avatar Stickers.
+ - /erofeet: Sends Random Ero-Feet source Images.
+ - /holo: Sends Random Holo source Images.
+ - /tits: Sends Random Tits source Images.
+ - /pussygif: Sends Random Pussy GIFs.
+ - /holoero: Sends Random Ero-Holo source Images.
+ - /pussy: Sends Random Pussy source Images.
+ - /hentaigif: Sends Random Hentai GIFs.
+ - /classic: Sends Random Classic Hentai GIFs.
+ - /kuni: Sends Random Pussy Lick GIFs.
+ - /waifu: Sends Random Waifu Stickers.
+ - /kiss: Sends Random Kissing GIFs.
+ - /femdom: Sends Random Femdom source Images.
+ - /cuddle: Sends Random Cuddle GIFs.
+ - /erok: Sends Random Ero-Kitsune source Images.
+ - /foxgirl: Sends Random FoxGirl source Images.
+ - /titsgif: Sends Random Tits GIFs.
+ - /ero: Sends Random Ero source Images.
+ - /smug: Sends Random Smug GIFs.
+ - /baka: Sends Random Baka Shout GIFs.
+ - /dva: Sends Random D.VA source Images.
+
+
+"""
+
+__mod_name__ = "NSFW"
