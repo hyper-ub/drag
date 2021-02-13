@@ -40,13 +40,12 @@ def send_help(chat_id, text, keyboard=None):
     
     
 PM_START_TEXT = f"""
-Hewwo, uwu >////<.
+I am jelly bot
 Tap on /help to know all my commands!
 """ 
 
 HELP_STRINGS = f"""
-Hello there! My name is *{dispatcher.bot.first_name}*. The lewdest near you.
-I provide lewds.
+Hello there! My name is *{dispatcher.bot.first_name}*.
 *Main* commands available:
  • /start: Starts me, can be used to check I'm alive or not.
  • /help: PM's you this message.
@@ -58,9 +57,9 @@ def start(update, context):
     buttons = [
     [
         InlineKeyboardButton(
-            text="Add to Group 👥", url="t.me/{}?startgroup=true".format(context.bot.username)
+            text="Add to Group ", url="t.me/{}?startgroup=true".format(context.bot.username)
         ),
-        InlineKeyboardButton("Maintained by", url="t.me/dank_as_fuck"),
+        InlineKeyboardButton("support group", url="t.me/fateunion"),
     ]
 ]
     if update.effective_chat.type == "private":
@@ -70,7 +69,7 @@ def start(update, context):
                 send_help(update.effective_chat.id, HELP_STRINGS)
         else:
             update.effective_message.reply_photo(
-                "https://telegra.ph/file/1a94f94b54cb28cb4fb98.jpg",
+                "https://telegra.ph/file/b739550a4fc52283ccf32.jpg",
                 PM_START_TEXT,
                 reply_markup=InlineKeyboardMarkup(buttons),
                 parse_mode=ParseMode.MARKDOWN,
@@ -79,7 +78,7 @@ def start(update, context):
             )
     else:
         update.effective_message.reply_text(
-            "Hi, I'm Chizuru."
+            "Hi, I'm jelly ."
         )
 
 def error_handler(update, context):
